@@ -29,12 +29,12 @@
 #define HTTPD_HTTPD_LOAD_H
 
 
-#define HTTPD_UNKNOWN_CONTENT_LEN	-1
+#define HTTPD_UNKNOWN_CONTENT_LEN -1
 
 enum HTTPD_CONTENT_TYPE {
-	HTTPD_UNKNOWN_CNT_TYPE = -1,
-	HTTPD_STD_CNT_TYPE = 0,
-	HTTPD_TEXT_XML_CNT_TYPE
+  HTTPD_UNKNOWN_CNT_TYPE = -1,
+  HTTPD_STD_CNT_TYPE = 0,
+  HTTPD_TEXT_XML_CNT_TYPE
 };
 
 /**
@@ -65,10 +65,10 @@ enum HTTPD_CONTENT_TYPE {
  *             callback (see httpd_flush_data_cb)
  */
 typedef void (httpd_acces_handler_cb) (void *cls, void *connection, const char *url,
-				const char *method, const char *version,
-				const char *upload_data, size_t *upload_data_size,
-				void **con_cls,
-				str *buffer, str *page);
+        const char *method, const char *version,
+        const char *upload_data, size_t *upload_data_size,
+        void **con_cls,
+        str *buffer, str *page);
 
 /**
  * Callback used by httpd in order to obtain content.  The
@@ -109,55 +109,55 @@ typedef void (httpd_init_proc_cb) (void);
 
 
 struct httpd_cb {
-	const char *module;
-	str *http_root;
-	httpd_acces_handler_cb *callback;
-	httpd_flush_data_cb *flush_data_callback;
-	httpd_init_proc_cb *init_proc_callback;
-	struct httpd_cb *next;
+  const char *module;
+  str *http_root;
+  httpd_acces_handler_cb *callback;
+  httpd_flush_data_cb *flush_data_callback;
+  httpd_init_proc_cb *init_proc_callback;
+  struct httpd_cb *next;
 };
 
 
 
 void lookup_arg(void *connection, const char *key,
-			void *con_cls, str *val);
+      void *con_cls, str *val);
 typedef void (*lookup_arg_f)(void *connection, const char *key,
-			void *con_cls, str *val);
+      void *con_cls, str *val);
 
 int register_httpdcb(const char *mod, str *root_path,
-			httpd_acces_handler_cb f1,
-			httpd_flush_data_cb f2,
-			httpd_init_proc_cb f3);
+      httpd_acces_handler_cb f1,
+      httpd_flush_data_cb f2,
+      httpd_init_proc_cb f3);
 typedef int (*register_httpdcb_f)(const char *mod, str *root_path,
-			httpd_acces_handler_cb f1,
-			httpd_flush_data_cb f2,
-			httpd_init_proc_cb f3);
+      httpd_acces_handler_cb f1,
+      httpd_flush_data_cb f2,
+      httpd_init_proc_cb f3);
 
 typedef struct httpd_api {
-	lookup_arg_f		lookup_arg;
-	register_httpdcb_f	register_httpdcb;
+  lookup_arg_f    lookup_arg;
+  register_httpdcb_f  register_httpdcb;
 }httpd_api_t;
 
 
 void httpd_lookup_arg(void *connection, const char *key,
-			void *con_cls, str *val);
+      void *con_cls, str *val);
 
 typedef int(*load_httpd_f)(httpd_api_t *api);
 int httpd_bind(httpd_api_t *api);
 
 static inline int load_httpd_api(httpd_api_t *api)
 {
-	load_httpd_f load_httpd;
+  load_httpd_f load_httpd;
 
-	/* import the httpd auto-loading functions */
-	if ( !(load_httpd=(load_httpd_f)find_export("httpd_bind", 1, 0)))
-		return -1;
+  /* import the httpd auto-loading functions */
+  if ( !(load_httpd=(load_httpd_f)find_export("httpd_bind", 1, 0)))
+    return -1;
 
-	/* let the auto-loading function load all httpd suuff */
-	if (load_httpd(api)==-1)
-		return -1;
+  /* let the auto-loading function load all httpd suuff */
+  if (load_httpd(api)==-1)
+    return -1;
 
-	return 0;
+  return 0;
 }
 
 #endif
