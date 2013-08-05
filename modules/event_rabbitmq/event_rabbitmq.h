@@ -62,7 +62,6 @@
 
 typedef struct _rmq_params {
 	str exchange;
-	str routing_key;
 	str user;
 	str pass;
 	amqp_connection_state_t conn;
