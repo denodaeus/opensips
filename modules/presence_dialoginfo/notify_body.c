@@ -43,7 +43,7 @@
 #include "notify_body.h"
 #include "pidf.h"
 
-str* agregate_xmls(str* pres_user, str* pres_domain, str** body_array, int n);
+str* agregate_xmls(str* pres_user, str* pres_domain, str** body_array, int n, int partial);
 str* build_dialoginfo(str* pres_user, str* pres_domain);
 extern int force_single_dialog;
 
@@ -59,14 +59,39 @@ void free_xml_body(char* body)
 str* dlginfo_agg_nbody(str* pres_user, str* pres_domain, str** body_array, int n, int off_index)
 {
 	str* n_body= NULL;
+	str *pres_uri= NULL;
+	char buf[MAX_URI_SIZE+1];
 
-	LM_DBG("[pres_user]=%.*s [pres_domain]= %.*s, [n]=%d\n",
-			pres_user->len, pres_user->s, pres_domain->len, pres_domain->s, n);
+	if ( (pres_user->len + pres_domain->len + 1) > MAX_URI_SIZE) {
+		LM_ERR("entity URI too long, maximum=%d\n", MAX_URI_SIZE);
+		return NULL;
+	}
+	memcpy(buf, "sip:", 4);
+	memcpy(buf+4, pres_user->s, pres_user->len);
+	buf[pres_user->len+4] = '@';
+	memcpy(buf + pres_user->len + 5, pres_domain->s, pres_domain->len);
+	buf[pres_user->len + 5 + pres_domain->len]= '\0';
+
+	pres_uri = (str*)pkg_malloc(sizeof(str));
+	if(pres_uri == NULL)
+	{
+		LM_ERR("while allocating memory\n");
+		return NULL;
+	}
+	memset(pres_uri, 0, sizeof(str));
+	pres_uri->s = buf;
+	pres_uri->len = pres_user->len + 5 + pres_domain->len;
+
+	LM_DBG("[pres_uri] %.*s, [n]=%d\n", pres_uri->len, pres_uri->s, n);
 
 	if(body_array== NULL)
-		return build_dialoginfo(pres_user, pres_domain);
+		return build_empty_dialoginfo(pres_uri, NULL);
 
-	n_body= agregate_xmls(pres_user, pres_domain, body_array, n);
+	if (n == -2)
+		n_body= agregate_xmls(pres_user, pres_domain, body_array, 1, 1);
+	else
+		n_body= agregate_xmls(pres_user, pres_domain, body_array, n, 0);
+
 	LM_DBG("[n_body]=%p\n", n_body);
 	if(n_body) {
 		LM_DBG("[*n_body]=%.*s\n",
@@ -81,11 +106,11 @@ str* dlginfo_agg_nbody(str* pres_user, str* pres_domain, str** body_array, int n
     xmlMemoryDump();
 
 	if (n_body== NULL)
-		n_body= build_dialoginfo(pres_user, pres_domain);
+		n_body= build_empty_dialoginfo(pres_uri, NULL);
 	return n_body;
 }
 
-str* agregate_xmls(str* pres_user, str* pres_domain, str** body_array, int n)
+str* agregate_xmls(str* pres_user, str* pres_domain, str** body_array, int n, int partial)
 {
 	int i, j= 0;
 
@@ -180,8 +205,11 @@ str* agregate_xmls(str* pres_user, str* pres_domain, str** body_array, int n)
 	   signed int) has max. 10 characters + 1 character for the sign
 	*/
     xmlNewProp(root_node, BAD_CAST "version", BAD_CAST VERSION_HOLDER);
-    xmlNewProp(root_node, BAD_CAST "state",  BAD_CAST "partial" );
     xmlNewProp(root_node, BAD_CAST "entity",  BAD_CAST buf);
+	if (!partial)
+		xmlNewProp(root_node, BAD_CAST "state",  BAD_CAST "full" );
+	else
+		xmlNewProp(root_node, BAD_CAST "state",  BAD_CAST "partial" );
 
 	/* loop over all bodies and create the aggregated body */
 	for(i=0; i<j; i++)

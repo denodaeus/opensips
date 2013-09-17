@@ -551,7 +551,8 @@ int update_presentity(struct sip_msg* msg, presentity_t* presentity, int* sent_r
 		if (p) {
 
 			turn = p->last_turn++;
-			LM_DBG("xXx - my turn is %d, current turn is %d\n",turn, p->current_turn);
+			LM_DBG("pres <%.*s> my turn is %d, current turn is %d\n",pres_uri.len,
+				pres_uri.s, turn, p->current_turn);
 
 			/* wait to get our turn as order of handling pubishs
 			   (need to wait the ongoing published to terminate
@@ -619,7 +620,7 @@ int update_presentity(struct sip_msg* msg, presentity_t* presentity, int* sent_r
 			*sent_reply= 1;
 
 			if(publ_notify(presentity, pres_uri, body.s ? &body : 0, 
-			&presentity->etag, rules_doc, NULL) < 0)
+			&presentity->etag, rules_doc, NULL, 1) < 0)
 			{
 				LM_ERR("while sending notify\n");
 				goto error;
@@ -639,9 +640,9 @@ int update_presentity(struct sip_msg* msg, presentity_t* presentity, int* sent_r
 			LM_DBG("Expires=0, deleted from db %.*s\n",
 					presentity->user.len,presentity->user.s);
 
-                        /* Send another NOTIFY, this time rely on whatever is on the DB, so in case there are no documents an empty
-                         * NOTIFY will be sent to the watchers */
-			if(publ_notify(presentity, pres_uri, NULL, NULL, rules_doc, NULL) < 0)
+			/* Send another NOTIFY, this time rely on whatever is on the DB, so in case there are no documents an empty
+			 * NOTIFY will be sent to the watchers */
+			if(publ_notify(presentity, pres_uri, NULL, NULL, rules_doc, NULL, 1) < 0)
 			{
 				LM_ERR("while sending notify\n");
 				goto error;
@@ -791,7 +792,7 @@ int update_presentity(struct sip_msg* msg, presentity_t* presentity, int* sent_r
 send_notify:
 
 	if (publ_notify(presentity, pres_uri, body.s?&body:0,
-				NULL, rules_doc, NULL)<0)
+				NULL, rules_doc, NULL, 1)<0)
 	{
 		LM_ERR("while sending Notify requests to watchers\n");
 		goto error;
@@ -811,7 +812,7 @@ send_mxd_notify:
 		{
 			/* send Notify for presence */
 			presentity->event = *pres_event_p;
-			if (publ_notify(presentity, pres_uri, 0, NULL, 0, dialog_body)<0)
+			if (publ_notify(presentity, pres_uri, 0, NULL, 0, dialog_body, 1)<0)
 			{
 				LM_ERR("while sending Notify requests to watchers\n");
 				if(dialog_body && dialog_body!=FAKED_BODY)
@@ -994,7 +995,7 @@ int pres_htable_restore(void)
 				sphere= extract_sphere(body);
 			}
 
-			if(insert_phtable(&uri, event, &etag, sphere, 0)< 0)
+			if(insert_phtable(&uri, event, &etag, sphere, 0)== NULL)
 			{
 				LM_ERR("inserting record in presentity hash table");
 				pkg_free(uri.s);
